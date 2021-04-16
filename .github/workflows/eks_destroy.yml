@@ -5,11 +5,8 @@ env:
     AWS_DEFAULT_REGION: us-east-2
 jobs:
   terraform_eks_destroy:
-    name: "Terraform Apply"
+    name: "Terraform Destroy"
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: eks
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -52,4 +49,4 @@ jobs:
 
     - name: "Delete S3 bucket of terraform"
       run: |
-        aws s3 rm s3://zimagi-terraform-remote-backend --recursive
+        aws s3 rb s3://zimagi-terraform-remote-backend --force
