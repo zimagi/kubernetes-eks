@@ -1,4 +1,4 @@
-# Provision AKS cluster
+# Provision EKS cluster
 
 This folder contains terraform configurations for Kubernetes-as-a-Service cluster in AWS environment:
 - [Provision aws backend for terraform](./docs/provision_aws_backend.md)

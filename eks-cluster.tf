@@ -1,32 +1,23 @@
 module "eks" {
   source          = "terraform-aws-modules/eks/aws"
-  cluster_name    = local.cluster_name
-  cluster_version = "1.17"
+  
+  cluster_version = var.eks_cluster_version
+  cluster_name    = var.eks_cluster_name
   subnets         = module.vpc.private_subnets
 
-  tags = {
-    Environment = "development"
-  }
+  tags = var.eks_cluster_tags
 
   vpc_id = module.vpc.vpc_id
 
-  workers_group_defaults = {
-    root_volume_type = "gp2"
-  }
+  workers_group_defaults = var.workers_group_defaults
 
   worker_groups = [
     {
       name                          = "worker-group-1"
-      instance_type                 = "t2.small"
-      asg_desired_capacity          = 2
-      additional_security_group_ids = [aws_security_group.worker_group_mgmt_one.id]
-    },
-    {
-      name                          = "worker-group-2"
       instance_type                 = "t2.medium"
-      additional_security_group_ids = [aws_security_group.worker_group_mgmt_two.id]
-      asg_desired_capacity          = 1
-    },
+      asg_desired_capacity          = 3
+      additional_security_group_ids = [aws_security_group.worker_group_mgmt_one.id]
+    }
   ]
 }
 
