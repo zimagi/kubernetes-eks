@@ -55,7 +55,7 @@ jobs:
     name: "Deploy zimagi"
     runs-on: ubuntu-latest
     steps:      
-      - uses: azure/setup-helm@v1
+    - uses: azure/setup-helm@v1
       with:
         version: 'v3.4.0'
 
@@ -69,10 +69,10 @@ jobs:
     - name: "Get eks kubeconfig"
       run: aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }}
 
-      - name: "Delete zimagi"
-        run: |
-          helm delete command-api -n zimagi
-          helm delete data-api -n zimagi
-          helm delete scheduler -n zimagi
-          helm delete worker -n zimagi
-          kubectl delete namespace zimagi
+    - name: "Delete zimagi"
+      run: |
+        helm delete command-api -n zimagi
+        helm delete data-api -n zimagi
+        helm delete scheduler -n zimagi
+        helm delete worker -n zimagi
+        kubectl delete namespace zimagi
