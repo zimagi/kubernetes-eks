@@ -1,0 +1,78 @@
+name: "Delete Zimagi from AKS cluster"
+on:
+  workflow_dispatch:
+env:
+    REGION: us-east-2
+    EKS_CLUSTER_NAME: zimagi
+jobs:
+  delete_data_api_database:
+    name: "Delete postgresql database"
+    runs-on: ubuntu-latest
+    steps:
+    - uses: azure/setup-helm@v1
+      with:
+        version: 'v3.4.0'
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
+    - name: "Get eks kubeconfig"
+      run: aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }}
+
+    - name: "Delete data helm chart"
+      run: |
+        helm delete data -n data
+        kubectl delete namespace data
+
+  delete_task_queue:
+    name: "Delete task queue"
+    runs-on: ubuntu-latest
+    steps:
+    - uses: azure/setup-helm@v1
+      with:
+        version: 'v3.4.0'
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
+    - name: "Get eks kubeconfig"
+      run: aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }}
+
+    - name: "Delete tasks helm chart"
+      run: |
+        helm delete tasks -n tasks
+        kubectl delete namespace tasks
+
+  delete_zimagi:
+    name: "Deploy zimagi"
+    runs-on: ubuntu-latest
+    steps:      
+      - uses: azure/setup-helm@v1
+      with:
+        version: 'v3.4.0'
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
+    - name: "Get eks kubeconfig"
+      run: aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }}
+
+      - name: "Delete zimagi"
+        run: |
+          helm delete command-api -n zimagi
+          helm delete data-api -n zimagi
+          helm delete scheduler -n zimagi
+          helm delete worker -n zimagi
+          kubectl delete namespace zimagi
