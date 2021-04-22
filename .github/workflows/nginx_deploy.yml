@@ -9,6 +9,9 @@ jobs:
     name: "Deploy nginx ingress controleer"
     runs-on: ubuntu-latest
     steps:
+    - name: "Checkout"
+      uses: actions/checkout@master
+
     - uses: azure/setup-helm@v1
       with:
         version: 'v3.4.0'
@@ -35,6 +38,6 @@ jobs:
         kubectl create namespace cert-manager
         kubectl apply --validate=false -f https://github.com/jetstack/cert-manager/releases/download/v0.14.1/cert-manager.crds.yaml
 
-        kubectl apply --namespace cert-manager -f cluster-issuer.yaml
+        kubectl apply --namespace cert-manager -f ./cluster-issuer.yaml
 
         helm install cert-manager --namespace cert-manager jetstack/cert-manager --version v0.14.1
