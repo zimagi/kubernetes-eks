@@ -2,7 +2,7 @@ name: "Delete Zimagi from AKS cluster"
 on:
   workflow_dispatch:
 env:
-    REGION: us-east-2
+    AWS_DEFAULT_REGION: us-east-2
     EKS_CLUSTER_NAME: zimagi
 jobs:
   delete_data_api_database:
