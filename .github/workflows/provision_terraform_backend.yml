@@ -1,0 +1,57 @@
+# yamllint disable-line rule:document-start
+name: "Provision EKS cluster"
+inputs:
+  aws_default_region:
+    description: "Default region of aws"
+    required: false
+    default: "us-east-2"
+  namespace:
+    description: "Prefix of the remote backend"
+    required: false
+    default: "zimagi"
+# yamllint disable-line rule:truthy
+defaults:
+  run:
+    shell: bash
+    working-directory: modules/terraform-aws-backend
+on:
+  workflow_dispatch:
+env:
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+jobs:
+  provision_aws_backend:
+    name: "Provision aws backend"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@master
+      - name: Extract branch name
+        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+        id: branch_name
+      - uses: chrislennon/action-aws-cli@v1.1
+      - name: "Install terraform cli"
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: 0.14.0
+      - name: "Terraform format"
+        continue-on-error: false
+        run: terraform fmt -check -no-color
+      - name: "Terraform Init"
+        continue-on-error: false
+        run: terraform init
+      - name: "Terraform Validate"
+        continue-on-error: false
+        run: terraform validate -no-color
+      - name: "Terraform Apply"
+        continue-on-error: false
+        run: terraform apply -no-color -auto-approve
+        env:
+          TF_VAR_region: ${{ github.event.inputs.aws_default_region }}
+          TF_VAR_namespace: ${{ github.event.inputs.namespace }}
+          TF_VAR_stage: ${{ steps.branch_name.outputs.branch }}
+      - name: "Terraform Apply"
+        continue-on-error: false
+        run: terraform init -force-copy
+      - name: cat
+        run: cat backend.tf
