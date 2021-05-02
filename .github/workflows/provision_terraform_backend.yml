@@ -30,8 +30,6 @@ jobs:
     steps:
       - name: "Checkout"
         uses: actions/checkout@master
-      - name: "Install aws cli"
-        uses: chrislennon/action-aws-cli@v1.1
       - name: "Install terraform cli"
         uses: hashicorp/setup-terraform@v1
         with:
