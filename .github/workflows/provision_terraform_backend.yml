@@ -16,6 +16,10 @@ on:
         description: "Prefix of the remote backend"
         required: false
         default: "zimagi"
+      stage:
+        description: "Name of your environment"
+        required: false
+        default: main
 env:
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -26,14 +30,15 @@ jobs:
     steps:
       - name: "Checkout"
         uses: actions/checkout@master
-      - name: Extract branch name
-        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
-        id: branch_name
-      - uses: chrislennon/action-aws-cli@v1.1
+      - name: "Install aws cli"
+        uses: chrislennon/action-aws-cli@v1.1
       - name: "Install terraform cli"
         uses: hashicorp/setup-terraform@v1
         with:
           terraform_version: 0.14.0
+      # - name: Extract branch name
+      #   run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+      #   id: branch_name
       - name: "Terraform format"
         continue-on-error: false
         run: terraform fmt -check -no-color
