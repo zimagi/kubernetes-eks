@@ -1,5 +1,5 @@
 # yamllint disable-line rule:document-start
-name: "Provision EKS cluster"
+name: "Provision aws s3 backend"
 inputs:
   aws_default_region:
     description: "Default region of aws"
@@ -50,8 +50,8 @@ jobs:
           TF_VAR_region: ${{ github.event.inputs.aws_default_region }}
           TF_VAR_namespace: ${{ github.event.inputs.namespace }}
           TF_VAR_stage: ${{ steps.branch_name.outputs.branch }}
-      - name: "Terraform Apply"
-        continue-on-error: false
-        run: terraform init -force-copy
+      # - name: "Terraform Apply"
+      #   continue-on-error: false
+      #   run: terraform init -force-copy
       - name: cat
         run: cat backend.tf
