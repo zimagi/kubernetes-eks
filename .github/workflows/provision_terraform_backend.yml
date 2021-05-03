@@ -34,9 +34,9 @@ jobs:
         uses: hashicorp/setup-terraform@v1
         with:
           terraform_version: 0.14.0
-      # - name: Extract branch name
-      #   run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
-      #   id: branch_name
+      - name: Extract branch name
+        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+        id: branch_name
       - name: "Terraform format"
         continue-on-error: false
         run: terraform fmt -check -no-color
