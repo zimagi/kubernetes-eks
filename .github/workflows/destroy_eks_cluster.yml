@@ -1,4 +1,4 @@
-name: "Destroy AWS backend"
+name: "Destroy eks cluster"
 on:
   workflow_dispatch:
     inputs:

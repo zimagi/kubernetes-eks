@@ -1,4 +1,4 @@
-name: "Deploy Zimagi to AKS cluster"
+name: "Deploy Zimagi to EKS cluster"
 on:
   workflow_dispatch:
 env:

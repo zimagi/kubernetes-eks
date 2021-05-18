@@ -1,4 +1,4 @@
-name: "Delete Zimagi from AKS cluster"
+name: "Delete Zimagi from EKS cluster"
 on:
   workflow_dispatch:
 env:

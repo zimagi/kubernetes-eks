@@ -1,8 +1,8 @@
-name: "Provision aws s3 backend"
+name: "Provision eks cluster"
 defaults:
   run:
     shell: bash
-    working-directory: modules/terraform-aws-backend
+    working-directory: terraform
 on:
   workflow_dispatch:
     inputs:
@@ -10,6 +10,10 @@ on:
         description: "Default region of aws"
         required: false
         default: "us-east-2"
+      tfvar_path:
+        description: "Path of fixture file"
+        required: false
+        default: ""
       namespace:
         description: "Prefix of the resources"
         required: false
@@ -17,13 +21,33 @@ on:
       name:
         description: "Name of the resource"
         required: false
-        default: "terraform"
+        default: "k8s"
+      kubernetes_version:
+        description: "Version of control plane"
+        required: false
+        default: "1.19"
+      desired_size:
+        description: "Desired size of nodes"
+        required: false
+        default: "1"
+      min_size:
+        description: "Minimum number of nodes"
+        required: false
+        default: "1"
+      max_size: "Maximum number of nodes"
+        description: false
+        required: false
+        default: "2"
+      disk_size:
+        description: "Size of storage in nodes in GB"
+        required: false
+        default: "20"
 env:
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   BACKEND_FILE_NAME: "backend.tf"
 jobs:
-  provision_aws_backend:
+  provision_eks_cluster:
     name: "Provision aws backend"
     runs-on: ubuntu-latest
     steps:
