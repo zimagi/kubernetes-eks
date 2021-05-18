@@ -1,10 +1,8 @@
-# yamllint disable-line rule:document-start
 name: "Provision aws s3 backend"
 defaults:
   run:
     shell: bash
     working-directory: modules/terraform-aws-backend
-# yamllint disable-line rule:truthy
 on:
   workflow_dispatch:
     inputs:
@@ -13,16 +11,17 @@ on:
         required: false
         default: "us-east-2"
       namespace:
-        description: "Prefix of the remote backend"
+        description: "Prefix of the resources"
         required: false
         default: "zimagi"
-      stage:
-        description: "Name of your environment"
+      name:
+        description: "Name of the resource"
         required: false
-        default: main
+        default: "terraform"
 env:
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  BACKEND_FILE_NAME: "backend.tf"
 jobs:
   provision_aws_backend:
     name: "Provision aws backend"
@@ -33,10 +32,11 @@ jobs:
       - name: "Install terraform cli"
         uses: hashicorp/setup-terraform@v1
         with:
-          terraform_version: 0.14.0
+          terraform_version: "0.15.0"
       - name: Extract branch name
         run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
         id: branch_name
+      - run: terraform version
       - name: "Terraform format"
         continue-on-error: false
         run: terraform fmt -check -no-color
@@ -52,9 +52,19 @@ jobs:
         env:
           TF_VAR_region: ${{ github.event.inputs.aws_default_region }}
           TF_VAR_namespace: ${{ github.event.inputs.namespace }}
+          TF_VAR_name: ${{ github.event.inputs.name }}
           TF_VAR_stage: ${{ steps.branch_name.outputs.branch }}
-      # - name: "Terraform Apply"
-      #   continue-on-error: false
-      #   run: terraform init -force-copy
-      - name: cat
-        run: cat backend.tf
+          TF_VAR_terraform_backend_config_file_name: ${{ env.BACKEND_FILE_NAME }}
+      - name: "Terraform Init force-copy"
+        continue-on-error: false
+        run: terraform init -force-copy
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ github.event.inputs.aws_default_region }}
+      - name: "Upload backend config file into s3"
+        run: |
+          aws s3 cp ${{ env.BACKEND_FILE_NAME }} \
+          s3://${{ github.event.inputs.namespace }}-${{ steps.branch_name.outputs.branch }}-${{ github.event.inputs.name }}-state/${{ env.BACKEND_FILE_NAME }}
