@@ -26,6 +26,10 @@ on:
         description: "Version of control plane"
         required: false
         default: "1.19"
+      instance_type:
+        description: "Type of the worker nodes"
+        required: false
+        default: "t3.medium"
       desired_size:
         description: "Desired size of nodes"
         required: false
@@ -34,8 +38,8 @@ on:
         description: "Minimum number of nodes"
         required: false
         default: "1"
-      max_size: "Maximum number of nodes"
-        description: false
+      max_size:
+        description: "Maximum number of nodes"
         required: false
         default: "2"
       disk_size:
