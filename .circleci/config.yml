@@ -1,0 +1,154 @@
+version: 2.1
+jobs:
+  plan-apply:
+    parameters:
+      terraform_example_directory:
+        type: string
+        default: ./terraform/modules/eks_cluster/examples/complete
+    docker:
+      - image: docker.mirror.hashicorp.services/hashicorp/terraform:1.0.5
+    environment:
+      TERRAFORM_EXAMPLE_DIRECTORY: << parameters.terraform_example_directory >>
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - terraform-plugins-v2-{{ .Branch }}-{{ checksum "<< parameters.terraform_example_directory >>/.terraform.lock.hcl" }}
+            - terraform-plugins-v2-{{ .Branch }}-
+            - terraform-plugins-v2-
+      - run:
+          name: Terraform plan
+          environment:
+            TF_CLI_ARGS: '-no-color'
+            TF_VAR_stage: ${CIRCLE_BRANCH}
+            TERRAFORM_WORKING_DIRECTORY: 'terraform/modules/eks_cluster'
+          command: |
+            pwd
+            CURRENT_FOLDER=$(pwd)
+            cd ${TERRAFORM_WORKING_DIRECTORY}
+            terraform fmt -check -diff -recursive=true
+            cd ${CURRENT_FOLDER}
+            cd ${TERRAFORM_EXAMPLE_DIRECTORY}
+            terraform init -input=false
+            terraform validate
+            terraform plan \
+              -input=false \
+              -no-color \
+              -compact-warnings \
+              -var-file=fixtures.tfvars \
+              -out=plan.tfplan
+      - save_cache:
+          paths:
+            - ${TERRAFORM_EXAMPLE_DIRECTORY}/.terraform
+          key: terraform-plugins-v2-{{ .Branch }}-{{ checksum "<< parameters.terraform_example_directory >>/.terraform.lock.hcl" }}
+      - persist_to_workspace:
+          root: << parameters.terraform_example_directory >>
+          paths:
+            - plan.tfplan
+  apply:
+    parameters:
+      terraform_example_directory:
+        type: string
+        default: terraform/modules/eks_cluster/examples/complete
+    docker:
+      - image: docker.mirror.hashicorp.services/hashicorp/terraform:1.0.5
+    environment:
+      TERRAFORM_EXAMPLE_DIRECTORY: << parameters.terraform_example_directory >>
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            apk add curl
+      - attach_workspace:
+          at: << parameters.terraform_example_directory >>
+      - restore_cache:
+          keys:
+            - terraform-plugins-v2-{{ .Branch }}-{{ checksum "<< parameters.terraform_example_directory >>/.terraform.lock.hcl" }}
+            - terraform-plugins-v2-{{ .Branch }}-
+            - terraform-plugins-v2-
+      - run:
+          name: Terraform apply
+          environment:
+            TF_CLI_ARGS: '-no-color'
+            AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+            AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+            TF_VAR_environment: ${CIRCLE_BRANCH}
+            TERRAFORM_WORKING_DIRECTORY: 'terraform/modules/eks_cluster'
+          command: |
+            cd ${TERRAFORM_EXAMPLE_DIRECTORY}
+            terraform apply \
+              -input=false \
+              -no-color \
+              -compact-warnings \
+              -lock-timeout=300s \
+              plan.tfplan
+      - persist_to_workspace:
+          root: << parameters.terraform_example_directory >>
+          paths:
+            - terraform.tfstate
+      - store_artifacts:
+          path: << parameters.terraform_example_directory >>/terraform.tfstate
+          destination: state-file
+  destroy:
+    parameters:
+      terraform_example_directory:
+        type: string
+        default: terraform/modules/eks_cluster/examples/complete
+    environment:
+      TERRAFORM_EXAMPLE_DIRECTORY: << parameters.terraform_example_directory >>
+    docker:
+      - image: docker.mirror.hashicorp.services/hashicorp/terraform:1.0.5
+    steps:
+      - checkout
+      - attach_workspace:
+          at: << parameters.terraform_example_directory >>
+      - restore_cache:
+          keys:
+            - terraform-plugins-v2-{{ .Branch }}-{{ checksum "<< parameters.terraform_example_directory >>/.terraform.lock.hcl" }}
+            - terraform-plugins-v2-{{ .Branch }}-
+            - terraform-plugins-v2-
+      - run:
+          name: Terraform destroy
+          environment:
+            TF_CLI_ARGS: '-no-color'
+            AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+            AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+            TF_VAR_environment: ${CIRCLE_BRANCH}
+          command: |
+            cd ${TERRAFORM_EXAMPLE_DIRECTORY}
+            terraform destroy \
+              -input=false \
+              -lock-timeout=300s \
+              -var-file=${TERRAFORM_EXAMPLE_DIRECTORY}/fixtures.tfvars \
+              -auto-approve
+      - persist_to_workspace:
+          root: << parameters.terraform_example_directory >>
+          paths:
+            - terraform.tfstate
+      - store_artifacts:
+          path: << parameters.terraform_example_directory >>/terraform.tfstate
+          destination: state-file
+
+workflows:
+  version: 2
+  plan_approve_apply:
+    jobs:
+      - plan-apply:
+          context: aws
+      - hold-apply:
+          type: approval
+          requires:
+            - plan-apply
+      - apply:
+          context: aws
+          requires:
+            - hold-apply
+      - hold-destroy:
+          type: approval
+          requires:
+            - apply
+      - destroy:
+          context: aws
+          requires:
+            - hold-destroy
