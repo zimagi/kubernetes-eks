@@ -14,10 +14,6 @@ variable "kubernetes_version" {
   description = "Desired Kubernetes master version. If you do not specify a value, the latest available version is used"
 }
 
-variable "cidr_block" {
-  type = string
-}
-
 variable "enabled_cluster_log_types" {
   type        = list(string)
   default     = []
@@ -103,38 +99,26 @@ variable "min_size" {
   description = "The minimum size of the AutoScaling Group"
 }
 
+variable "node_groups" {}
+
 variable "cluster_encryption_config_enabled" {
-  type        = bool
-  default     = true
-  description = "Set to `true` to enable Cluster Encryption Configuration"
+  default = false
 }
 
-variable "cluster_encryption_config_kms_key_id" {
+variable "kubeconfig_path_enabled" {
+  type        = bool
+  default     = false
+  description = "If `true`, configure the Kubernetes provider with `kubeconfig_path` and use it for authenticating to the EKS cluster"
+}
+
+variable "kubeconfig_path" {
   type        = string
   default     = ""
-  description = "KMS Key ID to use for cluster encryption config"
+  description = "The Kubernetes provider `config_path` setting to use when `kubeconfig_path_enabled` is `true`"
 }
 
-variable "cluster_encryption_config_kms_key_enable_key_rotation" {
-  type        = bool
-  default     = true
-  description = "Cluster Encryption Config KMS Key Resource argument - enable kms key rotation"
-}
+variable "cluster_autoscaler_enabled" {}
 
-variable "cluster_encryption_config_kms_key_deletion_window_in_days" {
-  type        = number
-  default     = 10
-  description = "Cluster Encryption Config KMS Key Resource argument - key deletion windows in days post destruction"
-}
-
-variable "cluster_encryption_config_kms_key_policy" {
-  type        = string
-  default     = null
-  description = "Cluster Encryption Config KMS Key Resource argument - key policy"
-}
-
-variable "cluster_encryption_config_resources" {
-  type        = list(any)
-  default     = ["secrets"]
-  description = "Cluster Encryption Config Resources to encrypt, e.g. ['secrets']"
+variable "auto_scaler_role_name" {
+  default = "AmazonEKSClusterAutoscalerRole"
 }
