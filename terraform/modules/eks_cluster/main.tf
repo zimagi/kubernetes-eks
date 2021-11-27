@@ -1,3 +1,5 @@
+data "aws_caller_identity" "current" {}
+
 module "label" {
   source     = "cloudposse/label/null"
   version    = "0.24.1"
@@ -67,13 +69,38 @@ module "eks_cluster" {
   oidc_provider_enabled        = var.oidc_provider_enabled
   enabled_cluster_log_types    = var.enabled_cluster_log_types
   cluster_log_retention_period = var.cluster_log_retention_period
-  kubeconfig_path_enabled      = var.kubeconfig_path_enabled
-  kubeconfig_path              = var.kubeconfig_path
-  map_additional_aws_accounts  = var.map_additional_aws_accounts
-  map_additional_iam_roles     = var.map_additional_iam_roles
-  map_additional_iam_users     = var.map_additional_iam_users
+
+  # map_additional_aws_accounts  = var.map_additional_aws_accounts
+  # map_additional_iam_roles     = var.map_additional_iam_roles
+  # map_additional_iam_users     = var.map_additional_iam_users
 
   cluster_encryption_config_enabled = var.cluster_encryption_config_enabled
+
+  context = module.this.context
+}
+
+module "eks_infra_node_group" {
+  source  = "cloudposse/eks-node-group/aws"
+  version = "0.26.0"
+
+  subnet_ids            = module.subnets.private_subnet_ids
+  cluster_name          = module.eks_cluster.eks_cluster_id
+  instance_types = ["t3.small"]
+  desired_size   = 1
+  min_size       = 1
+  max_size       = 3
+  kubernetes_labels     = {
+    zimagi = "infra"
+  }
+  create_before_destroy = true
+  kubernetes_version    = var.kubernetes_version == null || var.kubernetes_version == "" ? [] : [var.kubernetes_version]
+
+  cluster_autoscaler_enabled = var.cluster_autoscaler_enabled
+
+  # Prevent the node groups from being created before the Kubernetes aws-auth ConfigMap
+  module_depends_on = module.eks_cluster.kubernetes_config_map_id
+
+  node_role_arn = []
 
   context = module.this.context
 }
@@ -99,7 +126,7 @@ module "eks_node_group" {
   # Prevent the node groups from being created before the Kubernetes aws-auth ConfigMap
   module_depends_on = module.eks_cluster.kubernetes_config_map_id
 
-  node_role_arn = try(each.value.node_role_arn, [])
+  node_role_arn = [module.eks_infra_node_group.eks_node_group_role_arn]
 
   context = module.this.context
 }
@@ -107,13 +134,13 @@ module "eks_node_group" {
 module "autoscaler_role" {
   count = var.cluster_autoscaler_enabled ? 1 : 0
 
-  source = "cloudposse/eks-iam-role/aws"
-  version     = "0.10.1"
+  source  = "cloudposse/eks-iam-role/aws"
+  version = "0.10.1"
 
-  aws_account_number          = var.aws_account_number
+  aws_account_number          = data.aws_caller_identity.current.account_id
   eks_cluster_oidc_issuer_url = module.eks_cluster.eks_cluster_identity_oidc_issuer
 
-  service_account_name      = var.service_account_name
+  service_account_name      = "cluster-autoscaler"
   service_account_namespace = "kube-system"
   aws_iam_policy_document   = join("", data.aws_iam_policy_document.autoscaler.*.json)
 

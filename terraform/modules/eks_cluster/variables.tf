@@ -134,8 +134,6 @@ variable "auto_scaler_role_name" {
   default = "AmazonEKSClusterAutoscalerRole"
 }
 
-variable "helm_charts" {}
-
-variable "aws_account_number" {}
-
-variable "service_account_name" {}
+variable "helm_charts" {
+  default = {}
+}

@@ -33,26 +33,24 @@ kubernetes_labels = {}
 cluster_autoscaler_enabled = true
 
 node_groups = {
-  t3_small = {
-    instance_types    = ["t3.small"]
-    desired_size      = 1
-    min_size          = 1
-    max_size          = 3
+  t3_small_core = {
+    instance_types = ["t3.small"]
+    desired_size   = 1
+    min_size       = 1
+    max_size       = 3
     kubernetes_labels = {
-      zimagi = "infra"
+      zimagi = "core"
     }
-    disk_size         = 40
+    disk_size = 40
   }
   t3_small_worker = {
-    instance_types    = ["t3.small"]
-    desired_size      = 0
-    min_size          = 0
-    max_size          = 3
+    instance_types = ["t3.small"]
+    desired_size   = 0
+    min_size       = 0
+    max_size       = 3
     kubernetes_labels = {
       zimagi = "worker"
     }
-    disk_size         = 40
-    node_role_arn = ["arn:aws:iam::137919228019:role/workers"]
-
+    disk_size     = 40
   }
 }

@@ -41,14 +41,14 @@ resource "helm_release" "chart" {
   dynamic "set" {
     for_each = try(each.value.sets, [])
     content {
-      name = set.value.name
+      name  = set.value.name
       value = set.value.value
     }
   }
   dynamic "set_sensitive" {
     for_each = try(each.value.sensitive_sets, [])
     content {
-      name = set.value.name
+      name  = set.value.name
       value = set.value.value
     }
   }
@@ -60,5 +60,5 @@ resource "helm_release" "chart" {
     module.subnets,
     module.eks_cluster,
     module.eks_node_group,
-    module.autoscaler_role]
+  module.autoscaler_role]
 }

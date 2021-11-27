@@ -13,14 +13,14 @@ output "vpc_cidr" {
   description = "VPC ID"
 }
 
-output eks_cluster_arn {
+output "eks_cluster_arn" {
   value       = module.eks_cluster.eks_cluster_arn
   description = "The Amazon Resource Name (ARN) of the cluster"
 }
 
-output  "eks_cluster_certificate_authority_data" {
-  value       = "module.eks_cluster.eks_cluster_certificate_authority_data"
-  sensitive   = true
+output "eks_cluster_certificate_authority_data" {
+  value     = "module.eks_cluster.eks_cluster_certificate_authority_data"
+  sensitive = true
 }
 
 output "eks_cluster_endpoint" {
@@ -38,7 +38,7 @@ output "eks_cluster_identity_oidc_issuer" {
   value       = module.eks_cluster.eks_cluster_identity_oidc_issuer
 }
 
-output eks_cluster_identity_oidc_issuer_arn {
+output "eks_cluster_identity_oidc_issuer_arn" {
   value       = module.eks_cluster.eks_cluster_identity_oidc_issuer_arn
   description = "The OIDC Identity issuer ARN for the cluster that can be used to associate IAM roles with a service account"
 }
@@ -48,7 +48,7 @@ output "eks_cluster_managed_security_group_id" {
   value       = module.eks_cluster.eks_cluster_managed_security_group_id
 }
 
-output eks_cluster_role_arn {
+output "eks_cluster_role_arn" {
   value       = module.eks_cluster.eks_cluster_role_arn
   description = "ARN of the EKS cluster IAM role"
 }
@@ -74,7 +74,7 @@ output "eks_cluster_version" {
 }
 
 output "eks_cluster_name" {
-  value       = module.eks_cluster.eks_cluster_id
+  value = module.eks_cluster.eks_cluster_id
 }
 
 output "kubernetes_config_map_id" {
