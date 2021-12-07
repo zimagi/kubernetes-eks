@@ -10,27 +10,11 @@ name = "eks"
 
 kubernetes_version = "1.19"
 
-oidc_provider_enabled = true
-
-enabled_cluster_log_types = []
-
-cluster_log_retention_period = 7
-
-instance_types = ["t3.small"]
-
-desired_size = 2
-
-max_size = 3
-
-min_size = 2
-
-disk_size = 20
-
-kubernetes_labels = {}
-
-# cluster_encryption_config_enabled = false
-
-cluster_autoscaler_enabled = true
+map_additional_iam_users = [{
+  userarn  = "arn:aws:iam::137919228019:user/circleci"
+  username = "circleci"
+  groups   = []
+}]
 
 node_groups = {
   t3_small_core = {
@@ -51,6 +35,6 @@ node_groups = {
     kubernetes_labels = {
       zimagi = "worker"
     }
-    disk_size     = 40
+    disk_size = 40
   }
 }

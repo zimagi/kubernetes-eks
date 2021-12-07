@@ -11,7 +11,7 @@ provider "helm" {
 }
 
 resource "helm_release" "chart" {
-  for_each = var.helm_charts
+  for_each = local.helm_charts
 
   name                       = each.key
   chart                      = each.value.chart

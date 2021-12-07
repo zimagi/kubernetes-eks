@@ -128,7 +128,9 @@ variable "create_before_destroy" {
 
 variable "node_groups" {}
 
-variable "cluster_autoscaler_enabled" {}
+variable "cluster_autoscaler_enabled" {
+  default = true
+}
 
 variable "auto_scaler_role_name" {
   default = "AmazonEKSClusterAutoscalerRole"

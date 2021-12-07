@@ -83,13 +83,13 @@ module "eks_infra_node_group" {
   source  = "cloudposse/eks-node-group/aws"
   version = "0.26.0"
 
-  subnet_ids            = module.subnets.private_subnet_ids
-  cluster_name          = module.eks_cluster.eks_cluster_id
+  subnet_ids     = module.subnets.private_subnet_ids
+  cluster_name   = module.eks_cluster.eks_cluster_id
   instance_types = ["t3.small"]
   desired_size   = 1
   min_size       = 1
   max_size       = 3
-  kubernetes_labels     = {
+  kubernetes_labels = {
     zimagi = "infra"
   }
   create_before_destroy = true
@@ -156,7 +156,7 @@ module "autoscaler_role" {
 
 #   service_account_name      = var.service_account_name
 #   service_account_namespace = "aws-load-balancer-controller"
-#   aws_iam_policy_document     = data.aws_iam_policy_document.autoscaler.json
+#   aws_iam_policy_document     = file("policy_documents/aws_load_balncer_policy.json")
 
 #   context = module.this.context
 # }
@@ -182,229 +182,44 @@ data "aws_iam_policy_document" "autoscaler" {
   }
 }
 
-# data "aws_iam_policy_document" "aws_load_balancer_controller" {
-#   statement {
-#     sid = ""
-#     action = [
-#       "iam:CreateServiceLinkedRole",
-#       "ec2:DescribeAccountAttributes",
-#       "ec2:DescribeAddresses",
-#       "ec2:DescribeAvailabilityZones",
-#       "ec2:DescribeInternetGateways",
-#       "ec2:DescribeVpcs",
-#       "ec2:DescribeSubnets",
-#       "ec2:DescribeSecurityGroups",
-#       "ec2:DescribeInstances",
-#       "ec2:DescribeNetworkInterfaces",
-#       "ec2:DescribeTags",
-#       "ec2:GetCoipPoolUsage",
-#       "ec2:DescribeCoipPools",
-#       "elasticloadbalancing:DescribeLoadBalancers",
-#       "elasticloadbalancing:DescribeLoadBalancerAttributes",
-#       "elasticloadbalancing:DescribeListeners",
-#       "elasticloadbalancing:DescribeListenerCertificates",
-#       "elasticloadbalancing:DescribeSSLPolicies",
-#       "elasticloadbalancing:DescribeRules",
-#       "elasticloadbalancing:DescribeTargetGroups",
-#       "elasticloadbalancing:DescribeTargetGroupAttributes",
-#       "elasticloadbalancing:DescribeTargetHealth",
-#       "elasticloadbalancing:DescribeTags"
-#     ]
-#     effect = "Allow"
-#     resources = "*"
-#   }
-#   statement {
-#     sid = ""
-#     action = [
-#       "cognito-idp:DescribeUserPoolClient",
-#       "acm:ListCertificates",
-#       "acm:DescribeCertificate",
-#       "iam:ListServerCertificates",
-#       "iam:GetServerCertificate",
-#       "waf-regional:GetWebACL",
-#       "waf-regional:GetWebACLForResource",
-#       "waf-regional:AssociateWebACL",
-#       "waf-regional:DisassociateWebACL",
-#       "wafv2:GetWebACL",
-#       "wafv2:GetWebACLForResource",
-#       "wafv2:AssociateWebACL",
-#       "wafv2:DisassociateWebACL",
-#       "shield:GetSubscriptionState",
-#       "shield:DescribeProtection",
-#       "shield:CreateProtection",
-#       "shield:DeleteProtection"
-#     ]
-#     effect = "Allow"
-#     resources = [
-#       "ec2:AuthorizeSecurityGroupIngress",
-#       "ec2:RevokeSecurityGroupIngress"
-#     ]
-#   }
-#   statement {
-#     sid = ""
-#     action = [
-#       "ec2:CreateSecurityGroup"
-#     ]
-#     effect = "ALlow"
-#     resources = "*"
-#   }
-#   statement {
-#     sid = ""
-#     action = [
-#       "ec2:CreateTags"
-#     ]
-#     effect = "Allow"
-#     resources = [
-#       "arn:aws:ec2:*:*:security-group/*",
-#     ]
-#     condition = {
-#       test = "StringEquals"
-#       values = [
-#         "ec2:CreateAction": "CreateSecurityGroup"
-#       ]
-#     }
-#     condition {
-#       test = "Null"
-#       values = [
-#         "aws:RequestTag/elbv2.k8s.aws/cluster": "false"
-#       ]
-#     }
-#   }
-#   statement {
-#     sid = ""
-#     action = [
-#       "ec2:CreateTags",
-#       "ec2:DeleteTags"
-#     ]
-#     effect = "Allow"
-#     resources = [
-#       "arn:aws:ec2:*:*:security-group/*",
-#     ]
-#     condition = {
-#       test = "Null"
-#       values = [
-#         "aws:RequestTag/elbv2.k8s.aws/cluster": "true",
-#         "aws:ResourceTag/elbv2.k8s.aws/cluster": "false"
-#       ]
-#     }
-#   }
-#   statement {
-#     sid = ""
-#     action = [
-#       "ec2:AuthorizeSecurityGroupIngress",
-#       "ec2:RevokeSecurityGroupIngress",
-#       "ec2:DeleteSecurityGroup"
-#     ]
-#     effect = "Allow"
-#     resources = "*"
-#     condition {
-#       test = "Null"
-#       values = [
-#         "aws:RequestTag/elbv2.k8s.aws/cluster": "false"
-#       ]
-#     }
-#   }
-#   statement {
-#     sid = ""
-#     action = [
-#       "elasticloadbalancing:CreateLoadBalancer",
-#       "elasticloadbalancing:CreateTargetGroup"
-#     ]
-#     effect = "Allow"
-#     resources = "*"
-#     condition {
-#       test = "Null"
-#       values = [
-#         "aws:RequestTag/elbv2.k8s.aws/cluster": "false"
-#       ]
-#     }
-#   }
-#   statement {
-#     sid = ""
-#     action = [
-#       "elasticloadbalancing:CreateListener",
-#       "elasticloadbalancing:DeleteListener",
-#       "elasticloadbalancing:CreateRule",
-#       "elasticloadbalancing:DeleteRule"
-#     ]
-#     effect = "Allow"
-#     resources = "*"
-#   }
-#   statement {
-#     sid = ""
-#     action = [
-#       "elasticloadbalancing:AddTags",
-#       "elasticloadbalancing:RemoveTags"
-#     ]
-#     effect = "Allow"
-#     resources = [
-#       "arn:aws:elasticloadbalancing:*:*:targetgroup/*/*",
-#       "arn:aws:elasticloadbalancing:*:*:loadbalancer/net/*/*",
-#       "arn:aws:elasticloadbalancing:*:*:loadbalancer/app/*/*"
-#     ]
-#     condition {
-#       test = "Null"
-#       values = [
-#         "aws:RequestTag/elbv2.k8s.aws/cluster": "true",
-#         "aws:ResourceTag/elbv2.k8s.aws/cluster": "false"
-#       ]
-#     }
-#   }
-#   statement {
-#     sid = ""
-#     action = [
-#       "elasticloadbalancing:AddTags",
-#       "elasticloadbalancing:RemoveTags"
-#     ]
-#     effect = "Allow"
-#     resources = [
-#       "arn:aws:elasticloadbalancing:*:*:listener/net/*/*/*",
-#       "arn:aws:elasticloadbalancing:*:*:listener/app/*/*/*",
-#       "arn:aws:elasticloadbalancing:*:*:listener-rule/net/*/*/*",
-#       "arn:aws:elasticloadbalancing:*:*:listener-rule/app/*/*/*"
-#     ]
-#   }
-#   statement {
-#     sid = ""
-#     action = [
-#       "elasticloadbalancing:ModifyLoadBalancerAttributes",
-#       "elasticloadbalancing:SetIpAddressType",
-#       "elasticloadbalancing:SetSecurityGroups",
-#       "elasticloadbalancing:SetSubnets",
-#       "elasticloadbalancing:DeleteLoadBalancer",
-#       "elasticloadbalancing:ModifyTargetGroup",
-#       "elasticloadbalancing:ModifyTargetGroupAttributes",
-#       "elasticloadbalancing:DeleteTargetGroup"
-#     ]
-#     effect = "Allow"
-#     resources = "*"
-#     condition {
-#       test = "Null"
-#       values = [
-#         "aws:ResourceTag/elbv2.k8s.aws/cluster": "false"
-#       ]
-#     }
-#   }
-#   statement {
-#     sid = ""
-#     action = [
-#       "elasticloadbalancing:RegisterTargets",
-#       "elasticloadbalancing:DeregisterTargets"
-#     ]
-#     effect = "Allow"
-#     resouces = "arn:aws:elasticloadbalancing:*:*:targetgroup/*/*"
-#   }
-#   statement {
-#     sid = ""
-#     action = [
-#       "elasticloadbalancing:SetWebAcl",
-#       "elasticloadbalancing:ModifyListener",
-#       "elasticloadbalancing:AddListenerCertificates",
-#       "elasticloadbalancing:RemoveListenerCertificates",
-#       "elasticloadbalancing:ModifyRule"
-#     ]
-#     effect = "Allow"
-#     resource = "*"
-#   }
-#
-# }
+locals {
+  autoscaler_serviceaccount_name = "cluster-autoscaler"
+}
+
+
+data "template_file" "values" {
+  template = file("${path.module}/templates/values.yaml.tpl")
+  vars = {
+    autoDiscovery_clusterName                = module.eks_cluster.eks_cluster_id
+    awsRegion                                = var.region
+    image_tag                                = "v${var.kubernetes_version}.0"
+    rbac_serviceAccount_annotations_eks_role = module.autoscaler_role[0].service_account_role_arn
+    rbac_serviceAccount_name                 = local.autoscaler_serviceaccount_name
+  }
+
+  depends_on = [module.eks_cluster]
+}
+
+locals {
+  helm_charts = {
+    metric-server = {
+      name       = "metrics-server"
+      chart      = "metrics-server"
+      repository = "https://kubernetes-sigs.github.io/metrics-server/"
+      namespace  = "kube-system"
+    }
+    cluster-autoscaler = {
+      name       = "aws-cluster-autoscaler"
+      chart      = "cluster-autoscaler"
+      repository = "https://kubernetes.github.io/autoscaler"
+      namespace  = "kube-system"
+      values     = [data.template_file.values.rendered]
+    }
+    # aws-load-balancer-controller = {
+    #   name = "aws-load-balancer-controller"
+    #   chart = "aws-load-balancer-controller"
+    #   repository = "https://aws.github.io/eks-charts"
+    #   namespace = "aws-load-balancer-controller"
+    # }
+  }
+}
