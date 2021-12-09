@@ -20,7 +20,12 @@ jobs:
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v2
-      - uses: actions-hub/kubectl@master
+      - name: Install kubectl
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          mkdir -p ~/.local/bin/kubectl
+          mv ./kubectl ~/.local/bin/kubectl
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v1
       - name: Terraform fmt
