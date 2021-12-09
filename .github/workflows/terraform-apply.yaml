@@ -20,6 +20,7 @@ jobs:
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v2
+      - uses: actions-hub/kubectl@master
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v1
       - name: Terraform fmt
