@@ -2,6 +2,13 @@
 
 [Components](#components)
 
+## Usage
+
+1. Copy file [fixtures.tfvars](terraform/modules/eks_cluster/examples/complete/fixtures.tfvars) file from `terraform/modules/eks_cluster/examples/complete/fixtures.tfvars` to [zimagi_clusters](terraform/zimagi_clusters/test.tfvars) folder
+2. Rename and fill out fixtures.tfvars
+3. Add file, commit your changes and push into repo
+4. Run action
+
 ## Components
 - VPC
   - Network with address range 172.16.0.0/16
