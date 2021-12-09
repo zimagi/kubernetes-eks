@@ -35,6 +35,6 @@ jobs:
       - name: Terraform Validate
         run: terraform validate
       - name: Terraform Apply
-        run: terraform apply -input=false -auto-approve -var-file="${{ env.TFVARS_FILE_PATH }}/${{ github.event.inputs.environment_name }}.tfvars"
+        run: terraform apply -input=false -auto-approve -var-file="${{ env.TFVARS_FILE_PATH }}/${{ github.event.inputs.cluster_config }}.tfvars"
       - name: Terraform Destroy
-        run: terraform destroy -input=false -auto-approve -var-file="${{ env.TFVARS_FILE_PATH }}/${{ github.event.inputs.environment_name }}.tfvars"
+        run: terraform destroy -input=false -auto-approve -var-file="${{ env.TFVARS_FILE_PATH }}/${{ github.event.inputs.cluster_config }}.tfvars"
