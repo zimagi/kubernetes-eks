@@ -1,0 +1,40 @@
+name:  Provision Zimagi Cluster
+on:
+  workflow_dispatch:
+    inputs:
+      cluster_config:
+        description: 'Name of tfvars file'
+        required: true
+        default: 'example_cluster'
+defaults:
+  run:
+    working-directory: 'terraform/modules/eks_cluster/examples/complete'
+jobs:
+  terraform-apply:
+    runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY : ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      TF_CLI_ARGS: '-no-color'
+      TFVARS_FILE_PATH: '../../../../zimagi_clusters'
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v2
+      - name: Install kubectl
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          mkdir -p ~/.local/bin/kubectl
+          mv ./kubectl ~/.local/bin/kubectl
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v1
+      - name: Terraform fmt
+        run: terraform fmt -check
+      - name: Terraform Init
+        run: terraform init -upgrade
+      - name: Terraform Validate
+        run: terraform validate
+      - name: Terraform Apply
+        run: terraform apply -input=false -auto-approve -var-file="${{ env.TFVARS_FILE_PATH }}/${{ github.event.inputs.cluster_config }}.tfvars"
+      - name: Terraform Destroy
+        run: terraform destroy -input=false -auto-approve -var-file="${{ env.TFVARS_FILE_PATH }}/${{ github.event.inputs.cluster_config }}.tfvars"
