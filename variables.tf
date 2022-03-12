@@ -139,3 +139,7 @@ variable "auto_scaler_role_name" {
 variable "helm_charts" {
   default = {}
 }
+
+variable "argocd_projects" {
+  default = {}
+}

@@ -13,7 +13,7 @@ provider "helm" {
 resource "helm_release" "chart" {
   for_each = local.helm_charts
 
-  name                       = each.key
+  name                       = each.value.name
   chart                      = each.value.chart
   repository                 = try(each.value.repository, null)
   namespace                  = try(each.value.namespace, "default")
@@ -48,8 +48,8 @@ resource "helm_release" "chart" {
   dynamic "set_sensitive" {
     for_each = try(each.value.sensitive_sets, [])
     content {
-      name  = set.value.name
-      value = set.value.value
+      name  = set_sensitive.value.name
+      value = set_sensitive.value.value
     }
   }
   values = try(each.value.values, [])

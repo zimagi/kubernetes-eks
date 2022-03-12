@@ -85,7 +85,7 @@ module "eks_infra_node_group" {
 
   subnet_ids     = module.subnets.private_subnet_ids
   cluster_name   = module.eks_cluster.eks_cluster_id
-  instance_types = ["t3.small"]
+  instance_types = ["t3.large"]
   desired_size   = 1
   min_size       = 1
   max_size       = 3
@@ -202,19 +202,46 @@ data "template_file" "values" {
 
 locals {
   helm_charts = {
-    metric-server = {
-      name       = "metrics-server"
-      chart      = "metrics-server"
-      repository = "https://kubernetes-sigs.github.io/metrics-server/"
-      namespace  = "kube-system"
+    argocd = {
+      name = "argocd"
+      chart = "argo-cd"
+      repository = "https://argoproj.github.io/argo-helm"
+      namespace = "argocd"
+      create_namespace = true
+      sets = {
+        ui_service = {
+          name = "server.service.type"
+          value = "LoadBalancer"
+        }
+      }
     }
-    cluster-autoscaler = {
-      name       = "aws-cluster-autoscaler"
-      chart      = "cluster-autoscaler"
-      repository = "https://kubernetes.github.io/autoscaler"
-      namespace  = "kube-system"
-      values     = [data.template_file.values.rendered]
-    }
+    # metric-server = {
+    #   name       = "metrics-server"
+    #   chart      = "metrics-server"
+    #   repository = "https://kubernetes-sigs.github.io/metrics-server/"
+    #   namespace  = "kube-system"
+    # }
+    # cluster-autoscaler = {
+    #   name       = "aws-cluster-autoscaler"
+    #   chart      = "cluster-autoscaler"
+    #   repository = "https://kubernetes.github.io/autoscaler"
+    #   namespace  = "kube-system"
+    #   values     = [data.template_file.values.rendered]
+    # }
+    # zimagi = {
+    #   name = "zimagi"
+    #   chart = "zimagi"
+    #   repository = "https://charts.zimagi.com"
+    #   namespace = "zimagi"
+    #   create_namespace = true
+    # }
+    # csi-secrets-store-provider-aws = {
+    #   name = "csi-secrets-store-provider-aws"
+    #   chart = "csi-secrets-store-provider-aws"
+    #   repository = "https://aws.github.io/eks-charts"
+    #   namespace = "csi-secrets-store-provider-aws"
+    #   create_namespace = true
+    # }
     # aws-load-balancer-controller = {
     #   name = "aws-load-balancer-controller"
     #   chart = "aws-load-balancer-controller"
