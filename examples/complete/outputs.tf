@@ -82,6 +82,15 @@ output "kubernetes_config_map_id" {
   description = "kubernetes_config_map_id	ID of aws-auth Kubernetes ConfigMap"
 }
 
+output "subnet_ids" {
+  value       = module.eks.subnet_ids
+  description = "Subnet IDs"
+}
+
+# output "efs" {
+#   value = module.eks.efs
+# }
+
 
 # output "eks_node_group_arn" {
 #   description = "Amazon Resource Name (ARN) of the EKS Node Group"

@@ -28,6 +28,30 @@ locals {
   private_subnets_additional_tags = {
     "kubernetes.io/role/internal-elb" : 1
   }
+  efs_policy_name = "${module.label.id}-efs"
+  alb_policy_name = "${module.label.id}-alb"
+  allow_nfs_ingress_rule = {
+    key              = "nfs"
+    type             = "ingress"
+    from_port        = 2049
+    to_port          = 2049
+    protocol         = "tcp"
+    description      = "Allow NFS ingress"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+}
+
+resource "aws_iam_policy" "efs" {
+  name   = local.efs_policy_name
+  path   = "/"
+  policy = file("${path.module}/policy_documents/aws_efs.json")
+}
+
+resource "aws_iam_policy" "alb" {
+  name   = local.alb_policy_name
+  path   = "/"
+  policy = file("${path.module}/policy_documents/aws_alb_ingress_controller.json")
 }
 
 module "vpc" {
@@ -70,9 +94,10 @@ module "eks_cluster" {
   enabled_cluster_log_types    = var.enabled_cluster_log_types
   cluster_log_retention_period = var.cluster_log_retention_period
 
-  # map_additional_aws_accounts  = var.map_additional_aws_accounts
-  # map_additional_iam_roles     = var.map_additional_iam_roles
-  # map_additional_iam_users     = var.map_additional_iam_users
+  map_additional_iam_users     = var.map_additional_iam_users
+
+  kube_data_auth_enabled = false
+  kube_exec_auth_enabled = true
 
   cluster_encryption_config_enabled = var.cluster_encryption_config_enabled
 
@@ -89,8 +114,11 @@ module "eks_infra_node_group" {
   desired_size   = 1
   min_size       = 1
   max_size       = 3
+  capacity_type  = "SPOT"
   kubernetes_labels = {
-    zimagi = "infra"
+    "node-role.infra" = "true",
+    "node-role.compute" = "false",
+    "node-role.compute.gpu" = "false"
   }
   create_before_destroy = true
   kubernetes_version    = var.kubernetes_version == null || var.kubernetes_version == "" ? [] : [var.kubernetes_version]
@@ -98,9 +126,12 @@ module "eks_infra_node_group" {
   cluster_autoscaler_enabled = var.cluster_autoscaler_enabled
 
   # Prevent the node groups from being created before the Kubernetes aws-auth ConfigMap
-  module_depends_on = module.eks_cluster.kubernetes_config_map_id
+  depends_on = [module.eks_cluster, module.eks_cluster.kubernetes_config_map_id]
 
-  node_role_arn = []
+  node_role_policy_arns = [
+    aws_iam_policy.efs.arn,
+    aws_iam_policy.alb.arn
+  ]
 
   context = module.this.context
 }
@@ -118,135 +149,106 @@ module "eks_node_group" {
   min_size              = each.value.min_size
   max_size              = each.value.max_size
   kubernetes_labels     = each.value.kubernetes_labels
+  capacity_type         = try(each.value.capacity_type, "SPOT")
   create_before_destroy = true
   kubernetes_version    = var.kubernetes_version == null || var.kubernetes_version == "" ? [] : [var.kubernetes_version]
+
+  node_role_policy_arns = [
+
+  ]
 
   cluster_autoscaler_enabled = var.cluster_autoscaler_enabled
 
   # Prevent the node groups from being created before the Kubernetes aws-auth ConfigMap
-  module_depends_on = module.eks_cluster.kubernetes_config_map_id
+  depends_on = [module.eks_cluster, module.eks_cluster.kubernetes_config_map_id]
 
   node_role_arn = [module.eks_infra_node_group.eks_node_group_role_arn]
 
   context = module.this.context
 }
 
-module "autoscaler_role" {
-  count = var.cluster_autoscaler_enabled ? 1 : 0
+resource "aws_efs_file_system" "this" {
+  depends_on = [
+    module.subnets
+  ]
+  creation_token = module.label.id
+  performance_mode = "generalPurpose"
 
-  source  = "cloudposse/eks-iam-role/aws"
-  version = "0.10.1"
+  tags = module.label.tags
+}
+
+resource "aws_efs_mount_target" "this" {
+  depends_on = [
+    module.subnets
+  ]
+  for_each = {for index, subnet_id in module.subnets.public_subnet_ids : "subnet_${index}" => {"id" : subnet_id}}
+  file_system_id = aws_efs_file_system.this.id
+  subnet_id      = each.value.id
+  security_groups = [module.nfs_sg.id]
+}
+
+module "nfs_sg" {
+  source  = "cloudposse/security-group/aws"
+  version = "0.4.3"
+
+  attributes                 = ["nfs"]
+  security_group_description = "Allow NFS access"
+  create_before_destroy      = true
+  allow_all_egress           = true
+
+  rules = [local.allow_nfs_ingress_rule]
+
+  vpc_id = module.vpc.vpc_id
+
+  context = module.label.context
+}
+
+
+
+module "helm_release" {
+  source = "./modules/helm_release"
+  depends_on = [
+    module.eks_node_group
+  ]
+  helm_charts = local.helm_charts
+}
+
+module "eks_iam_role" {
+  source = "cloudposse/eks-iam-role/aws"
+  version     = "0.11.1"
+  depends_on = [
+    module.eks_cluster
+  ]
 
   aws_account_number          = data.aws_caller_identity.current.account_id
   eks_cluster_oidc_issuer_url = module.eks_cluster.eks_cluster_identity_oidc_issuer
 
-  service_account_name      = "cluster-autoscaler"
+  # Create a role for the service account named `autoscaler` in the Kubernetes namespace `kube-system`
+  service_account_name      = local.efs_csi_driver_sa_name
   service_account_namespace = "kube-system"
-  aws_iam_policy_document   = join("", data.aws_iam_policy_document.autoscaler.*.json)
+  aws_iam_policy_document = [file("${path.module}/policy_documents/aws_efs.json")]
 
   context = module.this.context
 }
 
-# module "aws_load_balancer_controller_role" {
-#   source = "cloudposse/eks-iam-role/aws"
-#   version     = "0.10.1"
+module "eks_iam_role_alb" {
+  source = "cloudposse/eks-iam-role/aws"
+  version     = "0.11.1"
+  depends_on = [
+    module.eks_cluster
+  ]
 
-#   aws_account_number          = var.aws_account_number
-#   eks_cluster_oidc_issuer_url = module.eks_cluster.eks_cluster_identity_oidc_issuer
+  aws_account_number          = data.aws_caller_identity.current.account_id
+  eks_cluster_oidc_issuer_url = module.eks_cluster.eks_cluster_identity_oidc_issuer
 
-#   service_account_name      = var.service_account_name
-#   service_account_namespace = "aws-load-balancer-controller"
-#   aws_iam_policy_document     = file("policy_documents/aws_load_balncer_policy.json")
+  # Create a role for the service account named `autoscaler` in the Kubernetes namespace `kube-system`
+  service_account_name      = local.alb_ingress_controller_sa_name
+  service_account_namespace = "kube-system"
+  aws_iam_policy_document = [file("${path.module}/policy_documents/aws_alb_ingress_controller.json")]
 
-#   context = module.this.context
+  context = module.this.context
+}
+
+# output "efs" {
+#   value = module.eks_iam_role
 # }
-
-data "aws_iam_policy_document" "autoscaler" {
-  count = var.cluster_autoscaler_enabled ? 1 : 0
-
-  statement {
-    sid = "AllowToScaleEKSNodeGroupAutoScalingGroup"
-
-    actions = [
-      "ec2:DescribeLaunchTemplateVersions",
-      "autoscaling:TerminateInstanceInAutoScalingGroup",
-      "autoscaling:SetDesiredCapacity",
-      "autoscaling:DescribeTags",
-      "autoscaling:DescribeLaunchConfigurations",
-      "autoscaling:DescribeAutoScalingInstances",
-      "autoscaling:DescribeAutoScalingGroups"
-    ]
-
-    effect    = "Allow"
-    resources = ["*"]
-  }
-}
-
-locals {
-  autoscaler_serviceaccount_name = "cluster-autoscaler"
-}
-
-
-data "template_file" "values" {
-  template = file("${path.module}/templates/values.yaml.tpl")
-  vars = {
-    autoDiscovery_clusterName                = module.eks_cluster.eks_cluster_id
-    awsRegion                                = var.region
-    image_tag                                = "v${var.kubernetes_version}.0"
-    rbac_serviceAccount_annotations_eks_role = module.autoscaler_role[0].service_account_role_arn
-    rbac_serviceAccount_name                 = local.autoscaler_serviceaccount_name
-  }
-
-  depends_on = [module.eks_cluster]
-}
-
-locals {
-  helm_charts = {
-    argocd = {
-      name = "argocd"
-      chart = "argo-cd"
-      repository = "https://argoproj.github.io/argo-helm"
-      namespace = "argocd"
-      create_namespace = true
-      sets = {
-        ui_service = {
-          name = "server.service.type"
-          value = "LoadBalancer"
-        }
-      }
-    }
-    # metric-server = {
-    #   name       = "metrics-server"
-    #   chart      = "metrics-server"
-    #   repository = "https://kubernetes-sigs.github.io/metrics-server/"
-    #   namespace  = "kube-system"
-    # }
-    # cluster-autoscaler = {
-    #   name       = "aws-cluster-autoscaler"
-    #   chart      = "cluster-autoscaler"
-    #   repository = "https://kubernetes.github.io/autoscaler"
-    #   namespace  = "kube-system"
-    #   values     = [data.template_file.values.rendered]
-    # }
-    # zimagi = {
-    #   name = "zimagi"
-    #   chart = "zimagi"
-    #   repository = "https://charts.zimagi.com"
-    #   namespace = "zimagi"
-    #   create_namespace = true
-    # }
-    # csi-secrets-store-provider-aws = {
-    #   name = "csi-secrets-store-provider-aws"
-    #   chart = "csi-secrets-store-provider-aws"
-    #   repository = "https://aws.github.io/eks-charts"
-    #   namespace = "csi-secrets-store-provider-aws"
-    #   create_namespace = true
-    # }
-    # aws-load-balancer-controller = {
-    #   name = "aws-load-balancer-controller"
-    #   chart = "aws-load-balancer-controller"
-    #   repository = "https://aws.github.io/eks-charts"
-    #   namespace = "aws-load-balancer-controller"
-    # }
-  }
-}

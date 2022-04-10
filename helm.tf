@@ -1,64 +1,138 @@
-provider "helm" {
-  kubernetes {
-    host                   = module.eks_cluster.eks_cluster_endpoint
-    cluster_ca_certificate = base64decode(module.eks_cluster.eks_cluster_certificate_authority_data)
-    exec {
-      api_version = "client.authentication.k8s.io/v1alpha1"
-      args        = ["eks", "get-token", "--cluster-name", module.eks_cluster.eks_cluster_id]
-      command     = "aws"
+data "template_file" "efs_csi_driver_values" {
+  template = file("${path.module}/template_values_files/aws-efs-csi-driver.yaml.tpl")
+  vars = {
+    role_arn = "${module.eks_iam_role.service_account_role_arn}"
+    service_account_name = "${local.efs_csi_driver_sa_name}"
+    file_system_id = "${aws_efs_file_system.this.id}"
+  }
+}
+
+data "template_file" "alb_ingress_controller_values" {
+  template = file("${path.module}/template_values_files/aws-alb-ingress-controller.yaml.tpl")
+  vars = {
+    role_arn = "${module.eks_iam_role_alb.service_account_role_arn}"
+    service_account_name = "${local.alb_ingress_controller_sa_name}"
+    cluster_name = "${module.eks_cluster.eks_cluster_id}"
+  }
+}
+
+locals {
+  argocd_namespace = "argocd"
+#   elastic_stack_namespace = "elastic-system"
+  efs_csi_driver_sa_name = "aws-efs-csi-controller"
+  alb_ingress_controller_sa_name = "aws-alb-ingress-controller"
+  system_helm_charts = {
+    argocd = {
+      name = "argocd"
+      chart = "argo-cd"
+      repository = "https://argoproj.github.io/argo-helm"
+      namespace = local.argocd_namespace
+      create_namespace = true
+      version = "3.35.2"
+      values = [
+        file("${path.module}/values_files/argocd_values.yaml")
+      ]
+    }
+    # elasticsearch = {
+    #   name = "elasticsearch"
+    #   chart = "elasticsearch"
+    #   repository = "https://helm.elastic.co"
+    #   namespace = local.elastic_stack_namespace
+    #   create_namespace = true
+    #   version = "7.17.1"
+    #   values = [
+    #     file("${path.module}/values_files/elasticsearch.yaml")
+    #   ]
+    # }
+    # kibana = {
+    #   name = "kibana"
+    #   chart = "kibana"
+    #   repository = "https://helm.elastic.co"
+    #   namespace = local.elastic_stack_namespace
+    #   create_namespace = true
+    #   version = "7.17.1"
+    #   values = [
+    #     file("${path.module}/values_files/kibana.yaml")
+    #   ]
+    # }
+    # filebeat = {
+    #   name = "filebeat"
+    #   chart = "filebeat"
+    #   repository = "https://helm.elastic.co"
+    #   namespace = local.elastic_stack_namespace
+    #   create_namespace = true
+    #   version = "7.17.1"
+    #   values = [
+    #     file("${path.module}/values_files/filebeat.yaml")
+    #   ]
+    # }
+    # kube-prometheus-stack = {
+    #   name = "kube-prometheus-stack"
+    #   chart = "kube-prometheus-stack"
+    #   repository = "https://prometheus-community.github.io/helm-charts"
+    #   namespace = "kube-prometheus-stack"
+    #   create_namespace = true
+    #   version = "23.3.1"
+    #   values = [
+    #     file("${path.module}/values_files/kube_prometheus_stack.yaml")
+    #   ]
+    # }
+    # metrics-server = {
+    #   name = "metrics-server"
+    #   chart = "metrics-server"
+    #   repository = "https://kubernetes-sigs.github.io/metrics-server/"
+    #   namespace = "metrics-server"
+    #   create_namespace = true
+    #   version = "3.8.2"
+    # }
+    zimagi = {
+      name = "zimagi"
+      chart = "zimagi"
+      repository = "https://zimagi.github.io/charts"
+      namespace = "zimagi"
+      create_namespace = true
+      version = "1.0.38"
+      values = [
+        file("${path.module}/values_files/zimagi_values.yaml")
+      ]
+    }
+    efs-csi-driver = {
+      name = "aws-efs-csi-driver"
+      chart = "aws-efs-csi-driver"
+      repository = "https://kubernetes-sigs.github.io/aws-efs-csi-driver"
+      namespace = "kube-system"
+      version = "2.2.4"
+      values = [
+        data.template_file.efs_csi_driver_values.rendered
+      ]
+    }
+    cert_manager = {
+      name = "cert-manager"
+      chart = "cert-manager"
+      repository = "https://charts.jetstack.io"
+      namespace = "cert-manager"
+      create_namespace = true
+      version = "1.8.0"
+      sets = {
+        crds = {
+          name = "installCRDs"
+          value = "true"
+        }
+      }
+    }
+    aws_load_balancer_controller = {
+      name = "aws-load-balancer-controller"
+      chart = "aws-load-balancer-controller"
+      repository = "https://aws.github.io/eks-charts"
+      namespace = "kube-system"
+      version = "1.4.1"
+      values = [
+        data.template_file.alb_ingress_controller_values.rendered
+      ]
     }
   }
 }
 
-resource "helm_release" "chart" {
-  for_each = local.helm_charts
-
-  name                       = each.value.name
-  chart                      = each.value.chart
-  repository                 = try(each.value.repository, null)
-  namespace                  = try(each.value.namespace, "default")
-  verify                     = try(each.value.verify, false)
-  timeout                    = try(each.value.timeout, 300)
-  disable_webhooks           = try(each.value.disable_webhooks, false)
-  reuse_values               = try(each.value.reuse_values, false)
-  reset_values               = try(each.value.reset_values, false)
-  force_update               = try(each.value.force_update, false)
-  recreate_pods              = try(each.value.recreate_pods, false)
-  cleanup_on_fail            = try(each.value.cleanup_on_fail, false)
-  max_history                = try(each.value.max_history, 0)
-  atomic                     = try(each.value.atomic, false)
-  render_subchart_notes      = try(each.value.render_subchart_notes, true)
-  disable_openapi_validation = try(each.value.disable_openapi_validation, false)
-  skip_crds                  = try(each.value.skip_crds, false)
-  create_namespace           = try(each.value.create_namespace, false)
-  dependency_update          = try(each.value.dependency_update, false)
-  disable_crd_hooks          = try(each.value.disable_crd_hooks, false)
-  lint                       = try(each.value.lint, false)
-  replace                    = try(each.value.replace, false)
-  version                    = try(each.value.version, null)
-  wait                       = try(each.value.wait, true)
-  wait_for_jobs              = try(each.value.wait_for_jobs, false)
-  dynamic "set" {
-    for_each = try(each.value.sets, [])
-    content {
-      name  = set.value.name
-      value = set.value.value
-    }
-  }
-  dynamic "set_sensitive" {
-    for_each = try(each.value.sensitive_sets, [])
-    content {
-      name  = set_sensitive.value.name
-      value = set_sensitive.value.value
-    }
-  }
-  values = try(each.value.values, [])
-
-  depends_on = [
-    module.label,
-    module.vpc,
-    module.subnets,
-    module.eks_cluster,
-    module.eks_node_group,
-  module.autoscaler_role]
+locals {
+  helm_charts = merge(local.system_helm_charts, var.custom_helm_charts)
 }

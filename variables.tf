@@ -16,7 +16,7 @@ variable "kubernetes_version" {
 
 variable "oidc_provider_enabled" {
   type        = bool
-  default     = false
+  default     = true
   description = "Create an IAM OIDC identity provider for the cluster, then you can create IAM roles to associate with a service account in the cluster, instead of using kiam or kube2iam. For more information, see https://docs.aws.amazon.com/eks/latest/userguide/enable-iam-roles-for-service-accounts.html"
 }
 
@@ -136,7 +136,7 @@ variable "auto_scaler_role_name" {
   default = "AmazonEKSClusterAutoscalerRole"
 }
 
-variable "helm_charts" {
+variable "custom_helm_charts" {
   default = {}
 }
 

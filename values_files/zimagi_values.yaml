@@ -1,0 +1,15 @@
+commandApi:
+  ingress:
+    annotations:
+      alb.ingress.kubernetes.io/scheme: internet-facing
+      alb.ingress.kubernetes.io/target-type: ip
+    rulesOverride: |
+      - http:
+        paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: command-api
+              port:
+                number: 80

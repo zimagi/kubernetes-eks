@@ -8,33 +8,30 @@ stage = "test"
 
 name = "eks"
 
-kubernetes_version = "1.19"
+kubernetes_version = "1.20"
 
 map_additional_iam_users = [{
-  userarn  = "arn:aws:iam::137919228019:user/circleci"
-  username = "circleci"
+  userarn  = "arn:aws:iam::251788601858:user/erik.jagyugya@dccs.tech"
+  username = "erik.jagyugya@dccs.tech"
   groups   = []
 }]
 
 node_groups = {
-  t3_small_core = {
-    instance_types = ["t3.small"]
+  t3_medium_compute = {
+    name = ""
+    instance_types = ["t3.medium"]
     desired_size   = 1
     min_size       = 1
     max_size       = 3
-    kubernetes_labels = {
-      zimagi = "core"
-    }
+    kubernetes_labels = {}
     disk_size = 40
   }
-  t3_small_worker = {
-    instance_types = ["t3.small"]
+  t3_medium_gpu_compute = {
+    instance_types = ["t3.medium"]
     desired_size   = 0
     min_size       = 0
     max_size       = 3
-    kubernetes_labels = {
-      zimagi = "worker"
-    }
+    kubernetes_labels = {}
     disk_size = 40
   }
 }

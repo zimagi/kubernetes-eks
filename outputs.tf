@@ -8,6 +8,11 @@ output "private_subnet_cidrs" {
   description = "Private subnet CIDRs"
 }
 
+output "subnet_ids" {
+  value       = concat(module.subnets.private_subnet_ids, module.subnets.public_subnet_ids)
+  description = "Subnet IDs"
+}
+
 output "vpc_cidr" {
   value       = module.vpc.vpc_cidr_block
   description = "VPC ID"
@@ -20,7 +25,7 @@ output "eks_cluster_arn" {
 
 output "eks_cluster_certificate_authority_data" {
   value     = "module.eks_cluster.eks_cluster_certificate_authority_data"
-  sensitive = true
+  sensitive = false
 }
 
 output "eks_cluster_endpoint" {
@@ -123,6 +128,6 @@ output "kubernetes_config_map_id" {
 #   value       = module.eks_node_group.*.eks_node_group_status
 # }
 
-output "autoscaler_role_service_account_role_arn" {
-  value = module.autoscaler_role[0].service_account_role_arn
-}
+# output "autoscaler_role_service_account_role_arn" {
+#   value = module.autoscaler_role[0].service_account_role_arn
+# }
