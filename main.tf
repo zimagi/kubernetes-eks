@@ -30,6 +30,7 @@ locals {
   }
   efs_policy_name = "${module.label.id}-efs"
   alb_policy_name = "${module.label.id}-alb"
+  autoscaler_policy_name = "${module.label.id}-autoscaler"
   allow_nfs_ingress_rule = {
     key              = "nfs"
     type             = "ingress"
@@ -52,6 +53,12 @@ resource "aws_iam_policy" "alb" {
   name   = local.alb_policy_name
   path   = "/"
   policy = file("${path.module}/policy_documents/aws_alb_ingress_controller.json")
+}
+
+resource "aws_iam_policy" "autoscaler" {
+  name   = local.autoscaler_policy_name
+  path   = "/"
+  policy = file("${path.module}/policy_documents/aws_autoscaler.json")
 }
 
 module "vpc" {
@@ -130,7 +137,8 @@ module "eks_infra_node_group" {
 
   node_role_policy_arns = [
     aws_iam_policy.efs.arn,
-    aws_iam_policy.alb.arn
+    aws_iam_policy.alb.arn,
+    aws_iam_policy.autoscaler.arn
   ]
 
   context = module.this.context
@@ -249,6 +257,20 @@ module "eks_iam_role_alb" {
   context = module.this.context
 }
 
-# output "efs" {
-#   value = module.eks_iam_role
-# }
+module "eks_iam_role_autoscaler" {
+  source = "cloudposse/eks-iam-role/aws"
+  version     = "0.11.1"
+  depends_on = [
+    module.eks_cluster
+  ]
+
+  aws_account_number          = data.aws_caller_identity.current.account_id
+  eks_cluster_oidc_issuer_url = module.eks_cluster.eks_cluster_identity_oidc_issuer
+
+  # Create a role for the service account named `autoscaler` in the Kubernetes namespace `kube-system`
+  service_account_name      = local.autoscaler_sa_name
+  service_account_namespace = "kube-system"
+  aws_iam_policy_document = [file("${path.module}/policy_documents/aws_autoscaler.json")]
+
+  context = module.this.context
+}

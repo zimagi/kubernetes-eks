@@ -16,11 +16,22 @@ data "template_file" "alb_ingress_controller_values" {
   }
 }
 
+data "template_file" "autoscaler" {
+  template = file("${path.module}/template_values_files/autoscaler.yaml.tpl")
+  vars = {
+    role_arn = "${module.eks_iam_role_autoscaler.service_account_role_arn}"
+    service_account_name = "${local.autoscaler_sa_name}"
+    cluster_name = "${module.eks_cluster.eks_cluster_id}"
+    aws_region = "${var.region}"
+  }
+}
+
 locals {
   argocd_namespace = "argocd"
 #   elastic_stack_namespace = "elastic-system"
   efs_csi_driver_sa_name = "aws-efs-csi-controller"
   alb_ingress_controller_sa_name = "aws-alb-ingress-controller"
+  autoscaler_sa_name = "autoscaler"
   system_helm_charts = {
     argocd = {
       name = "argocd"
@@ -94,6 +105,16 @@ locals {
       version = "1.0.38"
       values = [
         file("${path.module}/values_files/zimagi_values.yaml")
+      ]
+    }
+    autoscaler = {
+      name = "aws-cluster-autoscaler"
+      chart = "cluster-autoscaler"
+      repository = "https://kubernetes.github.io/autoscaler"
+      namespace = "kube-system"
+      version = "9.16.2"
+      values = [
+        data.template_file.autoscaler.rendered
       ]
     }
     efs-csi-driver = {
