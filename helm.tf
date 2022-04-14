@@ -28,7 +28,7 @@ data "template_file" "autoscaler" {
 
 locals {
   argocd_namespace = "argocd"
-#   elastic_stack_namespace = "elastic-system"
+  elastic_stack_namespace = "elastic-system"
   efs_csi_driver_sa_name = "aws-efs-csi-controller"
   alb_ingress_controller_sa_name = "aws-alb-ingress-controller"
   autoscaler_sa_name = "autoscaler"
@@ -44,65 +44,65 @@ locals {
         file("${path.module}/values_files/argocd_values.yaml")
       ]
     }
-    # elasticsearch = {
-    #   name = "elasticsearch"
-    #   chart = "elasticsearch"
-    #   repository = "https://helm.elastic.co"
-    #   namespace = local.elastic_stack_namespace
-    #   create_namespace = true
-    #   version = "7.17.1"
-    #   values = [
-    #     file("${path.module}/values_files/elasticsearch.yaml")
-    #   ]
-    # }
-    # kibana = {
-    #   name = "kibana"
-    #   chart = "kibana"
-    #   repository = "https://helm.elastic.co"
-    #   namespace = local.elastic_stack_namespace
-    #   create_namespace = true
-    #   version = "7.17.1"
-    #   values = [
-    #     file("${path.module}/values_files/kibana.yaml")
-    #   ]
-    # }
-    # filebeat = {
-    #   name = "filebeat"
-    #   chart = "filebeat"
-    #   repository = "https://helm.elastic.co"
-    #   namespace = local.elastic_stack_namespace
-    #   create_namespace = true
-    #   version = "7.17.1"
-    #   values = [
-    #     file("${path.module}/values_files/filebeat.yaml")
-    #   ]
-    # }
-    # kube-prometheus-stack = {
-    #   name = "kube-prometheus-stack"
-    #   chart = "kube-prometheus-stack"
-    #   repository = "https://prometheus-community.github.io/helm-charts"
-    #   namespace = "kube-prometheus-stack"
-    #   create_namespace = true
-    #   version = "23.3.1"
-    #   values = [
-    #     file("${path.module}/values_files/kube_prometheus_stack.yaml")
-    #   ]
-    # }
-    # metrics-server = {
-    #   name = "metrics-server"
-    #   chart = "metrics-server"
-    #   repository = "https://kubernetes-sigs.github.io/metrics-server/"
-    #   namespace = "metrics-server"
-    #   create_namespace = true
-    #   version = "3.8.2"
-    # }
+    elasticsearch = {
+      name = "elasticsearch"
+      chart = "elasticsearch"
+      repository = "https://helm.elastic.co"
+      namespace = local.elastic_stack_namespace
+      create_namespace = true
+      version = "7.17.1"
+      values = [
+        file("${path.module}/values_files/elasticsearch.yaml")
+      ]
+    }
+    kibana = {
+      name = "kibana"
+      chart = "kibana"
+      repository = "https://helm.elastic.co"
+      namespace = local.elastic_stack_namespace
+      create_namespace = true
+      version = "7.17.1"
+      values = [
+        file("${path.module}/values_files/kibana.yaml")
+      ]
+    }
+    filebeat = {
+      name = "filebeat"
+      chart = "filebeat"
+      repository = "https://helm.elastic.co"
+      namespace = local.elastic_stack_namespace
+      create_namespace = true
+      version = "7.17.1"
+      values = [
+        file("${path.module}/values_files/filebeat.yaml")
+      ]
+    }
+    kube-prometheus-stack = {
+      name = "kube-prometheus-stack"
+      chart = "kube-prometheus-stack"
+      repository = "https://prometheus-community.github.io/helm-charts"
+      namespace = "kube-prometheus-stack"
+      create_namespace = true
+      version = "23.3.1"
+      values = [
+        file("${path.module}/values_files/kube_prometheus_stack.yaml")
+      ]
+    }
+    metrics-server = {
+      name = "metrics-server"
+      chart = "metrics-server"
+      repository = "https://kubernetes-sigs.github.io/metrics-server/"
+      namespace = "metrics-server"
+      create_namespace = true
+      version = "3.8.2"
+    }
     zimagi = {
       name = "zimagi"
       chart = "zimagi"
       repository = "https://zimagi.github.io/charts"
       namespace = "zimagi"
       create_namespace = true
-      version = "1.0.38"
+      version = "1.0.39"
       values = [
         file("${path.module}/values_files/zimagi_values.yaml")
       ]
