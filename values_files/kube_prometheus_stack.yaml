@@ -1,0 +1,51 @@
+prometheus:
+  prometheusSpec:
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          resources:
+            requests:
+              storage: 5Gi
+grafana:
+  rafana.ini:
+    feature_toggles:
+      enable: tempoSearch
+  persistence:
+    type: statefulset
+    enabled: true
+    size: 5Gi
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+      - name: Loki
+        type: loki
+        uid: Loki
+        access: proxy
+        editable: false
+        url: http://loki-gateway.monitoring:80     # DNS of loki-gateway
+        jsonData:                                  # To setup integration between Loki and Tempo
+          derivedFields:
+            - datasourceUid: Tempo
+              matcherRegex: "(?:traceID|traceId)(?:=|\\s)(\\w+)"
+              name: TraceID
+              url: "$${__value.raw}"
+      - name: Tempo                         # Adding Tempo datasource
+        type: tempo
+        uid: Tempo
+        access: proxy
+        editable: false
+        url: http://tempo-gateway.monitoring:80
+  service:
+    type:
+      LoadBalancer
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      folder: /tmp/dashboards
+      searchNamespace: ALL
+alertmanager:
+  service:
+    type:
+      LoadBalancer

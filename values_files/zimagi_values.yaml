@@ -1,0 +1,10 @@
+service:
+  commandApi:
+    type: LoadBalancer
+  dataApi:
+    type: LoadBalancer
+persistence:
+  enabled: true
+  storageClass: "efs-sc"
+  accessMode: ReadWriteMany
+  size: 10Gi

@@ -1,0 +1,16 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: my-project
+  namespace: argocd
+spec:
+  project: default
+  source:
+    chart: zimagi
+    repoURL: https://charts.zimagi.com
+    targetRevision: 1.0.39
+    helm:
+      releaseName: zimagi
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: zimagi
